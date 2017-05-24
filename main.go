@@ -7,12 +7,23 @@ import (
 	"bufio"
 	"fmt"
 	"sync"
-	"strings"
+	"encoding/json"
 )
+
+type config struct {
+	Nginx []string
+}
+
+const (
+	nginx int = iota
+)
+
+var Configuration config
 
 type fileHandler struct {
 	pos int64
 	path string
+	logtype int
 	mutex sync.RWMutex
 }
 
@@ -53,8 +64,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 		scanner.Split(scanLines)
 
 		for scanner.Scan() {
-			// Analyze line by line
-
+			// TODO Analyze line by line
 			fmt.Fprintf(w, "Pos: %d, Scanned: %s\n", pos, scanner.Text())
 		}
 
@@ -84,21 +94,33 @@ func (file *fileHandler) estimateStart() {
 	}
 }
 
-func setup() {
-	// Get file list
-	fileList := strings.Split(os.Getenv("LOG_PATH"), ",")
+func setup(configPath string) {
+	// Open config file
+	file, err := os.Open(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// Iterate file list and add new objects with path
-	for _, filePath := range fileList {
+	// Decode json config file
+	decoder := json.NewDecoder(file)
+	Configuration = config{}
+	err = decoder.Decode(&Configuration)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Iterate nginx file path list and add new objects with path
+	for _, nginxFile := range Configuration.Nginx {
 		singleFile := fileHandler{}
-		singleFile.path = filePath
+		singleFile.path = nginxFile
+		singleFile.logtype = nginx
 		singleFile.estimateStart()
 		fileHandlers = append(fileHandlers, singleFile)
 	}
 }
 
 func main() {
-	setup()
+	setup(os.Args[1])
 
 	http.HandleFunc("/metrics", metricsHandler)
 	http.ListenAndServe(":8080", nil)

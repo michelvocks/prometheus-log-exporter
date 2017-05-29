@@ -5,7 +5,6 @@ import (
 	"os"
 	"log"
 	"bufio"
-	"fmt"
 	"sync"
 	"encoding/json"
 )
@@ -26,6 +25,13 @@ type fileHandler struct {
 	logtype int
 	mutex sync.RWMutex
 }
+
+type parser interface {
+	parse(l string)
+	print(w http.ResponseWriter)
+}
+
+var nginxCol parser = &nginx_col{}
 
 // storePos stores safely the position
 func (file *fileHandler) storePos(givenPos int64) {
@@ -63,13 +69,13 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		scanner.Split(scanLines)
 
+		// Iterate over all new log file lines and parse them
 		for scanner.Scan() {
-			// TODO Analyze line by line
-			fmt.Fprintf(w, "Pos: %d, Scanned: %s\n", pos, scanner.Text())
+			nginxCol.parse(scanner.Text())
 		}
 
-		// print type
-		fmt.Fprintf(w, "# TYPE nginx_request_time_microseconds_avg gauge")
+		// print the result
+		nginxCol.print(w)
 
 		// Set the new position and do it threadsafe
 		fileHandlers[id].storePos(pos)

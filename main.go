@@ -129,7 +129,7 @@ func main() {
 	setup(os.Args[1])
 
 	http.HandleFunc("/metrics", metricsHandler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":9011", nil)
 }
 
 

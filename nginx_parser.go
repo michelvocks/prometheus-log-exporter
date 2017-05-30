@@ -82,7 +82,7 @@ func (n *nginx_col) parse(l string) {
 
 func (n nginx_col) print(w http.ResponseWriter) {
 	// print type for request average request time
-	fmt.Fprint(w, "#TYPE nginx_request_time_microseconds_avg gauge\n")
+	fmt.Fprint(w, "#TYPE nginx_request_time_seconds_avg gauge\n")
 
 	// Iterate all entries
 	for _, nd := range n {
@@ -90,7 +90,7 @@ func (n nginx_col) print(w http.ResponseWriter) {
 		avg := nd.time / float64(nd.count)
 
 		// print out the average
-		fmt.Fprintf(w, "nginx_request_time_microseconds_avg{path=\"%s\",method=\"%s\",status=\"%d\"} %0.3f\n", nd.path, nd.method, nd.status, avg)
+		fmt.Fprintf(w, "nginx_request_time_seconds_avg{path=\"%s\",method=\"%s\",status=\"%d\"} %0.3f\n", nd.path, nd.method, nd.status, avg)
 	}
 
 }
